@@ -95,9 +95,9 @@ def get_cell_coords(row_coords, col_coords):
 
 def ocr_table_cell(image, cell_coords, row, col):
     """Return OCRed text from this table cell"""
-    basename = os.path.join(args.workdir, "%d-%d" % (row, col))
-    input_file = "%s.tif" % basename
-    output_file = "%s.txt" % basename
+    basename = os.path.join(args.workdir, "{}-{}".format(row, col))
+    input_file = "{}.tif".format(basename)
+    output_file = "{}.txt".format(basename)
     ocr_cmd = ["tesseract", "-l", args.language, input_file, basename]
     # extract cell from whole image, grayscale (1-color channel), monochrome
     cell_region = image.crop(cell_coords[row][col])
@@ -134,15 +134,15 @@ def get_image_table_data(filename):
     pixmap = image.load()
     width, height = image.size
     horiz_line_coords = get_horiz_line_coords(pixmap, width, height)
-    sys.stderr.write("%s: horiz_line_coords: %d\n" %
+    sys.stderr.write("{}: horiz_line_coords: {}\n".format
                      (filename, len(horiz_line_coords)))
     vert_line_coords = get_vert_line_coords(pixmap, width, height)
-    sys.stderr.write("%s: vert_line_coords: %d\n" %
+    sys.stderr.write("{}: vert_line_coords: {}\n".format
                      (filename, len(vert_line_coords)))
     row_coords = get_row_coords(horiz_line_coords)
-    sys.stderr.write("%s: rows: %d\n" % (filename, len(row_coords)))
+    sys.stderr.write("{}: rows: {}\n".format(filename, len(row_coords)))
     col_coords = get_col_coords(vert_line_coords)
-    sys.stderr.write("%s: cols: %d\n" % (filename, len(col_coords)))
+    sys.stderr.write("{}: cols: {}\n".format(filename, len(col_coords)))
     cell_coords = get_cell_coords(row_coords, col_coords)
     table = []
     for row in range(len(row_coords)):
