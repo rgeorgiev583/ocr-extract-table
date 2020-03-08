@@ -173,10 +173,10 @@ def extract_pdf(filename):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print "Usage: ctocr.py FILENAME"
+        print("Usage: ctocr.py FILENAME")
         exit()
     # split target pdf into pages
     filename = sys.argv[1]
     data = extract_pdf(filename)
     for row in data:
-        print "\t".join(row)
+        print("\t".join(row))
