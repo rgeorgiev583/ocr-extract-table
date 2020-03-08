@@ -157,7 +157,7 @@ def split_pdf_into_pngs(pdf_file_path):
     pdf_file_path_stem, _ = os.path.splitext(os.path.basename(pdf_file_path))
     png_base_path = os.path.join(args.workdir, pdf_file_path_stem)
     subprocess.call(["pdftoppm", pdf_file_path, png_base_path, "-png"])
-    return [png_file_path for png_file_path in glob.glob(os.path.join(args.workdir, "{}-*".format(png_base_path)))]
+    return glob.glob(os.path.join(args.workdir, "{}-*".format(png_base_path)))
 
 
 def extract_pdf_table(pdf_file_path):
