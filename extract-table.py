@@ -204,7 +204,7 @@ def count(string):
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(
-        description="Extract table data using OCR from a PDF into CSV format.")
+        description="Extract textual table data using OCR from a PDF into CSV format.")
     arg_parser.add_argument("input_files", metavar="FILE", nargs="+",
                             help="PDF file to extract from")
     arg_parser.add_argument("-l", "--language", default="eng",
