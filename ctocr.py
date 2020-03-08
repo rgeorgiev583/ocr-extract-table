@@ -163,10 +163,11 @@ def extract_pdf(filename):
         for d in pngdata:
             data.append(d)
         # remove temp files for this page
-        os.system("rm working/*.tif")
-        os.system("rm working/*.txt")
+        for filepath in glob.glob(os.path.join('working', '*.tif')) + glob.glob(os.path.join('working', '*.txt')):
+            os.remove(filepath)
     # remove split pages
-    os.system("rm working/*")
+    for direntry in os.scandir('working'):
+        os.remove(direntry.path)
     return data
 
 
