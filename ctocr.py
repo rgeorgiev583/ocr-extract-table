@@ -5,12 +5,14 @@ import sys
 import os
 import glob
 import re
+import tempfile
 
 # minimum run of adjacent pixels to call something a line
 H_THRESH = 300
 V_THRESH = 300
 
 border_color = (0, 0, 0)
+workdir = None
 
 
 def get_hlines(pix, w, h):
@@ -93,7 +95,7 @@ def get_cells(rows, cols):
 
 def ocr_cell(im, cells, x, y):
     """Return OCRed text from this cell"""
-    fbase = "working/%d-%d" % (x, y)
+    fbase = "%s/%d-%d" % (workdir, x, y)
     ftif = "%s.tif" % fbase
     ftxt = "%s.txt" % fbase
     cmd = "tesseract %s %s" % (ftif, fbase)
@@ -151,9 +153,9 @@ def get_image_data(filename):
 def split_pdf(filename):
     """Split PDF into PNG pages, return filenames"""
     stem, _ = os.path.splitext(os.path.basename(filename))
-    cmd = "pdftoppm %s working/%s -png" % (filename, stem)
+    cmd = "pdftoppm %s %s/%s -png" % (filename, workdir, stem)
     subprocess.call([cmd], shell=True)
-    return [f for f in glob.glob(os.path.join('working', '%s*' % stem))]
+    return [f for f in glob.glob(os.path.join(workdir, '%s*' % stem))]
 
 
 def extract_pdf(filename):
@@ -166,12 +168,6 @@ def extract_pdf(filename):
         pngdata = get_image_data(pngfile)
         for d in pngdata:
             data.append(d)
-        # remove temp files for this page
-        for filepath in glob.glob(os.path.join('working', '*.tif')) + glob.glob(os.path.join('working', '*.txt')):
-            os.remove(filepath)
-    # remove split pages
-    for direntry in os.scandir('working'):
-        os.remove(direntry.path)
     return data
 
 
@@ -193,13 +189,12 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: ctocr.py FILENAME [BORDER_COLOR]")
         exit()
-    # split target pdf into pages
     filename = sys.argv[1]
     if len(sys.argv) > 2:
         border_color = color(sys.argv[2])
-    if not os.path.exists("working"):
-        os.mkdir("working")
-    data = extract_pdf(filename)
-    os.rmdir("working")
+    with tempfile.TemporaryDirectory() as tempdir:
+        workdir = tempdir
+        # split target pdf into pages
+        data = extract_pdf(filename)
     for row in data:
         print(",".join(row))
