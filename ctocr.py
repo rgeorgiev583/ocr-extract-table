@@ -123,7 +123,7 @@ def ocr_cell(im, cells, x, y):
     trimmed.save(ftif, "TIFF")
     subprocess.call([cmd], shell=True, stderr=subprocess.PIPE)
     lines = [l.strip() for l in open(ftxt).readlines()]
-    return lines[0]
+    return "\n".join(filter(lambda line: line != "", lines))
 
 
 def get_image_data(filename):
