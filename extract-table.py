@@ -8,10 +8,6 @@ import re
 import tempfile
 import argparse
 
-# minimum run of adjacent pixels to call something a line
-HORIZ_PIXEL_COUNT_THRESHOLD = 300
-VERT_PIXEL_COUNT_THRESHOLD = 300
-
 args = None
 
 
@@ -32,7 +28,7 @@ def get_horiz_line_coords(pixmap, width, height):
                 if border_color_pixel_count > max_border_color_pixel_count:
                     max_border_color_pixel_count = border_color_pixel_count
                 border_color_pixel_count = 0
-        if max_border_color_pixel_count > HORIZ_PIXEL_COUNT_THRESHOLD:
+        if max_border_color_pixel_count > args.horiz_pixel_count_threshold:
             horiz_line_coords.append((x1, y, x2, y))
     return horiz_line_coords
 
@@ -54,7 +50,7 @@ def get_vert_line_coords(pixmap, width, height):
                 if border_color_pixel_count > max_border_color_pixel_count:
                     max_border_color_pixel_count = border_color_pixel_count
                 border_color_pixel_count = 0
-        if max_border_color_pixel_count > VERT_PIXEL_COUNT_THRESHOLD:
+        if max_border_color_pixel_count > args.vert_pixel_count_threshold:
             vert_line_coords.append((x, y1, x, y2))
     return vert_line_coords
 
@@ -148,7 +144,7 @@ def get_image_table_data(filename):
     table_data = []
     for row_num in range(len(row_coords)):
         table_data.append([ocr_table_cell(image, cell_coords, row_num, col_num)
-                      for col_num in range(len(col_coords))])
+                           for col_num in range(len(col_coords))])
     return table_data
 
 
@@ -194,6 +190,18 @@ def color(string):
     return value
 
 
+def count(string):
+    is_num = True
+    try:
+        num = int(string)
+    except ValueError:
+        is_num = False
+    if not is_num or num < 0:
+        errmsg = "{} does not represent a valid count".format(string)
+        raise argparse.ArgumentTypeError(errmsg)
+    return num
+
+
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(
         description="Extract table data using OCR from a PDF into CSV format.")
@@ -205,6 +213,10 @@ if __name__ == "__main__":
                             help="the (main) color of the borders of the table. Can be expressed as a hexadecimal or decimal RGB triple. For instance, the color black is represented as #000000 in hex and (0, 0, 0) in decimal (default: '#000000')")
     arg_parser.add_argument("-s", "--csv-separator", default=",",
                             help="the separator character used for the CSV output (default: ',')")
+    arg_parser.add_argument("-H", "--horiz-pixel-count-threshold", type=count, default=300,
+                            help="the minimum length of a run of adjacent horizontal pixels to recognize that as a line (default: 300)")
+    arg_parser.add_argument("-V", "--vert-pixel-count-threshold", type=count, default=300,
+                            help="the minimum length of a run of adjacent vertical pixels to recognize that as a line (default: 300)")
     arg_parser.add_argument(
         "-w", "--workdir", help="path to the working directory where intermediate files are placed (default: a temporary directory)")
     args = arg_parser.parse_args()
