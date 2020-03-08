@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from PIL import Image, ImageOps
 import subprocess
 import sys
 import os
@@ -7,6 +6,8 @@ import glob
 import re
 import tempfile
 import argparse
+
+from PIL import Image, ImageOps
 
 args = None
 
