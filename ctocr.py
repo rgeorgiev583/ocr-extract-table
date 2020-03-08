@@ -6,12 +6,13 @@ import os
 import glob
 import re
 import tempfile
+import argparse
 
 # minimum run of adjacent pixels to call something a line
 H_THRESH = 300
 V_THRESH = 300
 
-border_color = (0, 0, 0)
+args = None
 workdir = None
 
 
@@ -23,7 +24,7 @@ def get_hlines(pix, w, h):
         black = 0
         run = 0
         for x in range(w):
-            if pix[x, y] == border_color:
+            if pix[x, y] == args.border_color:
                 black = black + 1
                 if not x1:
                     x1 = x
@@ -45,7 +46,7 @@ def get_vlines(pix, w, h):
         black = 0
         run = 0
         for y in range(h):
-            if pix[x, y] == border_color:
+            if pix[x, y] == args.border_color:
                 black = black + 1
                 if not y1:
                     y1 = y
@@ -186,15 +187,18 @@ def color(string):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: ctocr.py FILENAME [BORDER_COLOR]")
-        exit()
-    filename = sys.argv[1]
-    if len(sys.argv) > 2:
-        border_color = color(sys.argv[2])
-    with tempfile.TemporaryDirectory() as tempdir:
-        workdir = tempdir
-        # split target pdf into pages
-        data = extract_pdf(filename)
+    arg_parser = argparse.ArgumentParser(
+        description="Extract table data using OCR from a PDF into CSV format.")
+    arg_parser.add_argument("input_files", metavar="FILE", nargs="+",
+                            help="PDF file to extract from")
+    arg_parser.add_argument("-b", "--border-color", type=color, default=(0, 0, 0),
+                            help="the (main) color of the borders of the table. Can be expressed as a hexadecimal or decimal RGB triple. For instance, the color black is represented as #000000 in hex and (0, 0, 0) in decimal (default: '#000000')")
+    args = arg_parser.parse_args()
+
+    for input_file in args.input_files:
+        with tempfile.TemporaryDirectory() as tempdir:
+            workdir = tempdir
+            # split target pdf into pages
+            data = extract_pdf(input_file)
     for row in data:
         print(",".join(row))
