@@ -16,7 +16,7 @@ args = None
 
 
 def get_horiz_line_coords(pixmap, width, height):
-    """Get start/end coordinates of lines containing horizontal runs of at least HORIZ_PIXEL_COUNT_THRESHOLD pixels of the border color"""
+    """Get start/end coordinates of lines containing a horizontal run of at least HORIZ_PIXEL_COUNT_THRESHOLD pixels of the border color"""
     horiz_line_coords = []
     for y in range(height):
         x1, x2 = (None, None)
@@ -38,7 +38,7 @@ def get_horiz_line_coords(pixmap, width, height):
 
 
 def get_vert_line_coords(pixmap, width, height):
-    """Get start/end coordinates of lines containing vertical runs of at least VERT_PIXEL_COUNT_THRESHOLD pixels of the border color"""
+    """Get start/end coordinates of lines containing a vertical run of at least VERT_PIXEL_COUNT_THRESHOLD pixels of the border color"""
     vert_line_coords = []
     for x in range(width):
         y1, y2 = (None, None)
@@ -93,38 +93,38 @@ def get_cell_coords(row_coords, col_coords):
     return cell_coords
 
 
-def ocr_table_cell(image, cell_coords, row, col):
-    """Return OCRed text from this table cell"""
-    basename = os.path.join(args.workdir, "{}-{}".format(row, col))
-    input_file = "{}.tif".format(basename)
-    output_file = "{}.txt".format(basename)
-    ocr_cmd = ["tesseract", "-l", args.language, input_file, basename]
+def ocr_table_cell(image, cell_coords, row_num, col_num):
+    """Return OCRed text from the specified table cell"""
+    base_path = os.path.join(args.workdir, "{}-{}".format(row_num, col_num))
+    image_file = "{}.tif".format(base_path)
+    text_file = "{}.txt".format(base_path)
+    ocr_cmd = ["tesseract", "-l", args.language, image_file, base_path]
     # extract cell from whole image, grayscale (1-color channel), monochrome
-    cell_region = image.crop(cell_coords[row][col])
+    cell_region = image.crop(cell_coords[row_num][col_num])
     cell_region = ImageOps.grayscale(cell_region)
     cell_region = cell_region.point(lambda p: p > 200 and 255)
     # determine background color (most used color)
     cell_histogram = cell_region.histogram()
     if cell_histogram[0] > cell_histogram[255]:
-        bgcolor = 0
+        bg_color = 0
     else:
-        bgcolor = 255
+        bg_color = 255
     # trim borders by finding top-left and bottom-right bg pixels
     cell_pixmap = cell_region.load()
     x1, y1 = 0, 0
     x2, y2 = cell_region.size
     x2, y2 = x2-1, y2-1
-    while cell_pixmap[x1, y1] != bgcolor:
+    while cell_pixmap[x1, y1] != bg_color:
         x1 += 1
         y1 += 1
-    while cell_pixmap[x2, y2] != bgcolor:
+    while cell_pixmap[x2, y2] != bg_color:
         x2 -= 1
         y2 -= 1
     # save as TIFF and extract text with Tesseract OCR
     cell_region = cell_region.crop((x1, y1, x2, y2))
-    cell_region.save(input_file, "TIFF")
+    cell_region.save(image_file, "TIFF")
     subprocess.call(ocr_cmd, stderr=subprocess.PIPE)
-    lines = [line.strip() for line in open(output_file).readlines()]
+    lines = [line.strip() for line in open(text_file).readlines()]
     return "\n".join(filter(lambda line: line != "", lines))
 
 
@@ -134,47 +134,48 @@ def get_image_table_data(filename):
     pixmap = image.load()
     width, height = image.size
     horiz_line_coords = get_horiz_line_coords(pixmap, width, height)
-    sys.stderr.write("{}: horiz_line_coords: {}\n".format
+    sys.stderr.write("{}: horizontal line count: {}\n".format
                      (filename, len(horiz_line_coords)))
     vert_line_coords = get_vert_line_coords(pixmap, width, height)
-    sys.stderr.write("{}: vert_line_coords: {}\n".format
+    sys.stderr.write("{}: vertical line count: {}\n".format
                      (filename, len(vert_line_coords)))
     row_coords = get_row_coords(horiz_line_coords)
-    sys.stderr.write("{}: rows: {}\n".format(filename, len(row_coords)))
+    sys.stderr.write("{}: row count: {}\n".format(filename, len(row_coords)))
     col_coords = get_col_coords(vert_line_coords)
-    sys.stderr.write("{}: cols: {}\n".format(filename, len(col_coords)))
+    sys.stderr.write("{}: column count: {}\n".format(
+        filename, len(col_coords)))
     cell_coords = get_cell_coords(row_coords, col_coords)
-    table = []
-    for row in range(len(row_coords)):
-        table.append([ocr_table_cell(image, cell_coords, row, col)
-                      for col in range(len(col_coords))])
-    return table
+    table_data = []
+    for row_num in range(len(row_coords)):
+        table_data.append([ocr_table_cell(image, cell_coords, row_num, col_num)
+                      for col_num in range(len(col_coords))])
+    return table_data
 
 
-def split_pdf_into_pngs(filename):
-    """Split PDF into PNG pages and return their filenames"""
-    basename, _ = os.path.splitext(os.path.basename(filename))
-    output_basename = os.path.join(args.workdir, basename)
-    subprocess.call(["pdftoppm", filename, output_basename, "-png"])
-    return [file for file in glob.glob(os.path.join(args.workdir, "{}-*".format(output_basename)))]
+def split_pdf_into_pngs(pdf_file_path):
+    """Split each page of the PDF file into a PNG file and return their paths"""
+    pdf_file_path_stem, _ = os.path.splitext(os.path.basename(pdf_file_path))
+    png_base_path = os.path.join(args.workdir, pdf_file_path_stem)
+    subprocess.call(["pdftoppm", pdf_file_path, png_base_path, "-png"])
+    return [png_file_path for png_file_path in glob.glob(os.path.join(args.workdir, "{}-*".format(png_base_path)))]
 
 
-def extract_pdf_table(filename):
+def extract_pdf_table(pdf_file_path):
     """Extract table data from a PDF file"""
-    pngfiles = split_pdf_into_pngs(filename)
-    sys.stderr.write("Number of pages: {}\n".format(len(pngfiles)))
+    png_file_paths = split_pdf_into_pngs(pdf_file_path)
+    sys.stderr.write("Page count: {}\n".format(len(png_file_paths)))
     # extract table data from each page
     table = []
-    for pngfile in pngfiles:
-        data = get_image_table_data(pngfile)
-        for row in data:
+    for png_file_path in png_file_paths:
+        table_data = get_image_table_data(png_file_path)
+        for row in table_data:
             table.append(row)
     return table
 
 
-def extract_pdf_table_into_str(filename):
+def extract_pdf_table_into_str(pdf_file_path):
     """Extract table data from a PDF file and convert it to a string"""
-    table = extract_pdf_table(filename)
+    table = extract_pdf_table(pdf_file_path)
     lines = [args.csv_separator.join(row) for row in table]
     return "\n".join(lines)
 
@@ -186,7 +187,7 @@ def color(string):
         value_match = re.fullmatch(
             r"\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*", string)
     if value_match is None:
-        errmsg = "{} does not represent a color".format(string)
+        errmsg = "{} does not represent a valid color".format(string)
         raise argparse.ArgumentTypeError(errmsg)
     value = tuple(map(lambda channel_value: int(
         channel_value), value_match.groups()))
