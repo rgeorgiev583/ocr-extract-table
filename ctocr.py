@@ -150,10 +150,10 @@ def get_image_data(filename):
 
 def split_pdf(filename):
     """Split PDF into PNG pages, return filenames"""
-    prefix = os.path.basename(filename[:-4])
-    cmd = "pdftoppm %s working/%s -png" % (filename, prefix)
+    stem, _ = os.path.splitext(os.path.basename(filename))
+    cmd = "pdftoppm %s working/%s -png" % (filename, stem)
     subprocess.call([cmd], shell=True)
-    return [f for f in glob.glob(os.path.join('working', '%s*' % prefix))]
+    return [f for f in glob.glob(os.path.join('working', '%s*' % stem))]
 
 
 def extract_pdf(filename):
