@@ -180,14 +180,16 @@ def extract_pdf_table_into_str(pdf_file_path):
 def color(string):
     value_match = re.fullmatch(
         r"\s*#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})\s*", string)
+    value_base = 16
     if value_match is None:
         value_match = re.fullmatch(
             r"\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*", string)
+        value_base = 10
     if value_match is None:
         errmsg = "{} does not represent a valid color".format(string)
         raise argparse.ArgumentTypeError(errmsg)
     value = tuple(map(lambda channel_value: int(
-        channel_value), value_match.groups()))
+        channel_value, base=value_base), value_match.groups()))
     return value
 
 
