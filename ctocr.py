@@ -176,6 +176,8 @@ if __name__ == '__main__':
         exit()
     # split target pdf into pages
     filename = sys.argv[1]
+    if not os.path.exists("working"):
+        os.mkdir("working")
     data = extract_pdf(filename)
     for row in data:
         print("\t".join(row))
