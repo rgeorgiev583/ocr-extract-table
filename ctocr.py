@@ -180,5 +180,6 @@ if __name__ == '__main__':
     if not os.path.exists("working"):
         os.mkdir("working")
     data = extract_pdf(filename)
+    os.rmdir("working")
     for row in data:
         print("\t".join(row))
