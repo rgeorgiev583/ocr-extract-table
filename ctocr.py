@@ -1,5 +1,4 @@
-import Image
-import ImageOps
+from PIL import Image, ImageOps
 import subprocess
 import sys
 import os
