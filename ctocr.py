@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from PIL import Image, ImageOps
 import subprocess
 import sys
