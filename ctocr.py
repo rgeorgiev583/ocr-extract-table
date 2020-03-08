@@ -3,10 +3,13 @@ import subprocess
 import sys
 import os
 import glob
+import re
 
 # minimum run of adjacent pixels to call something a line
 H_THRESH = 300
 V_THRESH = 300
+
+border_color = (0, 0, 0)
 
 
 def get_hlines(pix, w, h):
@@ -17,7 +20,7 @@ def get_hlines(pix, w, h):
         black = 0
         run = 0
         for x in range(w):
-            if pix[x, y] == (0, 0, 0):
+            if pix[x, y] == border_color:
                 black = black + 1
                 if not x1:
                     x1 = x
@@ -39,7 +42,7 @@ def get_vlines(pix, w, h):
         black = 0
         run = 0
         for y in range(h):
-            if pix[x, y] == (0, 0, 0):
+            if pix[x, y] == border_color:
                 black = black + 1
                 if not y1:
                     y1 = y
@@ -171,12 +174,28 @@ def extract_pdf(filename):
     return data
 
 
+def color(string):
+    value_match = re.fullmatch(
+        r"\s*#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})\s*", string)
+    if value_match is None:
+        value_match = re.fullmatch(
+            r"\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*", string)
+    if value_match is None:
+        errmsg = "{} does not represent a color".format(string)
+        raise TypeError(errmsg)
+    value = tuple(map(lambda channel_value: int(
+        channel_value), value_match.groups()))
+    return value
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: ctocr.py FILENAME")
+    if len(sys.argv) < 2:
+        print("Usage: ctocr.py FILENAME [BORDER_COLOR]")
         exit()
     # split target pdf into pages
     filename = sys.argv[1]
+    if len(sys.argv) > 2:
+        border_color = color(sys.argv[2])
     if not os.path.exists("working"):
         os.mkdir("working")
     data = extract_pdf(filename)
