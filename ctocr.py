@@ -13,7 +13,6 @@ H_THRESH = 300
 V_THRESH = 300
 
 args = None
-workdir = None
 
 
 def get_hlines(pix, w, h):
@@ -96,10 +95,10 @@ def get_cells(rows, cols):
 
 def ocr_cell(im, cells, x, y):
     """Return OCRed text from this cell"""
-    fbase = "%s/%d-%d" % (workdir, x, y)
+    fbase = "%s/%d-%d" % (args.workdir, x, y)
     ftif = "%s.tif" % fbase
     ftxt = "%s.txt" % fbase
-    cmd = "tesseract %s %s" % (ftif, fbase)
+    cmd = "tesseract -l %s %s %s" % (args.language, ftif, fbase)
     # extract cell from whole image, grayscale (1-color channel), monochrome
     region = im.crop(cells[x][y])
     region = ImageOps.grayscale(region)
@@ -154,9 +153,9 @@ def get_image_data(filename):
 def split_pdf(filename):
     """Split PDF into PNG pages, return filenames"""
     stem, _ = os.path.splitext(os.path.basename(filename))
-    cmd = "pdftoppm %s %s/%s -png" % (filename, workdir, stem)
+    cmd = "pdftoppm %s %s/%s -png" % (filename, args.workdir, stem)
     subprocess.call([cmd], shell=True)
-    return [f for f in glob.glob(os.path.join(workdir, '%s*' % stem))]
+    return [f for f in glob.glob(os.path.join(args.workdir, '%s*' % stem))]
 
 
 def extract_pdf(filename):
@@ -191,14 +190,22 @@ if __name__ == '__main__':
         description="Extract table data using OCR from a PDF into CSV format.")
     arg_parser.add_argument("input_files", metavar="FILE", nargs="+",
                             help="PDF file to extract from")
+    arg_parser.add_argument("-l", "--language", default="eng",
+                            help="the language of the data (default: 'eng')")
     arg_parser.add_argument("-b", "--border-color", type=color, default=(0, 0, 0),
                             help="the (main) color of the borders of the table. Can be expressed as a hexadecimal or decimal RGB triple. For instance, the color black is represented as #000000 in hex and (0, 0, 0) in decimal (default: '#000000')")
+    arg_parser.add_argument("-s", "--csv-separator", default=",",
+                            help="the separator character used for the CSV output (default: ',')")
+    arg_parser.add_argument(
+        "-w", "--workdir", help="path to the working directory where intermediate files are placed (default: a temporary directory)")
     args = arg_parser.parse_args()
 
     for input_file in args.input_files:
-        with tempfile.TemporaryDirectory() as tempdir:
-            workdir = tempdir
-            # split target pdf into pages
+        if args.workdir is None:
+            with tempfile.TemporaryDirectory() as workdir:
+                args.workdir = workdir
+                data = extract_pdf(input_file)
+        else:
             data = extract_pdf(input_file)
     for row in data:
-        print(",".join(row))
+        print(args.csv_separator.join(row))
